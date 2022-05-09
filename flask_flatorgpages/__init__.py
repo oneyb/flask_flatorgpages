@@ -1,8 +1,5 @@
 
-from flask import Flask
 from flask_flatpages import FlatPages
-from flask_frozen import Freezer
-from flask import render_template, url_for
 from flask_flatpages.utils import pygmented_markdown
 from flask_flatpages.page import Page
 
@@ -13,13 +10,7 @@ import re
 
 
 def convert_org_to_html(text):
-    md = pypandoc.convert_text(text, to="markdown_strict",
-                               format='org'
-                               # , extra_args=['']
-                               )
-    # print(md)
-    # import IPython; IPython.embed()
-    # raise
+    md = pypandoc.convert_text(text, to="markdown_strict", format='org')
     output = pygmented_markdown(md)
     return output
 
@@ -33,12 +24,10 @@ class FlatOrgPages(FlatPages):
 
         # Read lines until an empty line is encountered.
         meta = '\n'.join(takewhile(operator.methodcaller('strip'), lines))
+
         # Translate simple org header
+        meta = re.sub('\#\+([A-Za-z_]+:)', lambda x: x.group(1).lower(), meta)
 
-        def to_lower(matchobj):
-            return matchobj.group(1).lower()
-
-        meta = re.sub('\#\+([A-Z_]+:)', to_lower, meta)
         # The rest is the content. `lines` is an iterator so it continues
         # where `itertools.takewhile` left it.
         content = '\n'.join(lines)
@@ -59,25 +48,27 @@ class FlatOrgPages(FlatPages):
         return Page(path, meta, content, html_renderer, folder)
 
 
-class OrgPage(Page):
-    """A class that could translate an org-mode header to have the same
-    characteristics as a Page object by redefining the meta method.
-    """
-    from werkzeug.utils import cached_property
+# class OrgPage(Page):
+#     """A class that could translate an org-mode header to have the same
+#     characteristics as a Page object by redefining the meta method.
+#     """
+#     from werkzeug.utils import cached_property
 
-    @cached_property
-    def meta(self):
-        """A dict of metadata parsed as Emacs Org from the header of the file.
-        This redefines the normal meta function.
-        """
-        def org_header_load(_meta):
-            text = zip(re.findall('\#\+([A-Z_]+)', _meta),
-                       re.findall(': (.*?)\\r', _meta))
-            return {x.lower(): y.strip() for x, y in text}
-        meta = org_header_load(self._meta)
-        if not meta:
-            return {}
-        if not isinstance(meta, dict):
-            raise ValueError("Expected a dict in metadata for '{0}', got {1}".
-                             format(self.path, type(meta).__name__))
-        return meta
+#     def org_header_load(_meta):
+#         print(_meta)
+#         text = zip(re.findall('\#\+([A-Z_]+)', _meta),
+#                     re.findall(': (.*?)\\r', _meta))
+#         return {x.lower(): y.strip() for x, y in text}
+
+#     @cached_property
+#     def meta(self):
+#         """A dict of metadata parsed as Emacs Org from the header of the file.
+#         This redefines the normal meta function.
+#         """
+#         meta = self.org_header_load(self._meta)
+#         if not meta:
+#             return {}
+#         if not isinstance(meta, dict):
+#             raise ValueError("Expected a dict in metadata for '{0}', got {1}".
+#                              format(self.path, type(meta).__name__))
+#         return meta
